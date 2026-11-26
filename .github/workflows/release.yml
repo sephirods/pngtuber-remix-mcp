@@ -1,0 +1,87 @@
+name: Build & Release Studio MCP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/release.yml'
+      - 'server.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'skills/**'
+      - 'examples/**'
+      - 'README.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout pngtuber-remix-mcp
+        uses: actions/checkout@v4
+
+      - name: Clone PNGTuber-Remix studio-mcp fork
+        run: |
+          git clone --branch studio-mcp --depth 1 https://github.com/sephirods/PNGTuber-Remix.git PNGTuber-Remix
+
+      - name: Download Godot 4.7-stable & export templates
+        run: |
+          curl -fL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.7-stable_linux.x86_64
+          curl -fL -o templates.tpz https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_export_templates.tpz
+          unzip -q templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/4.7.stable
+          mv templates/* ~/.local/share/godot/export_templates/4.7.stable/
+
+      - name: Import Godot project resources
+        run: |
+          ./Godot_v4.7-stable_linux.x86_64 --headless --path PNGTuber-Remix --import
+
+      - name: Export Windows & Linux Studio builds and package Skill
+        run: |
+          mkdir -p dist_win/PNGTubeRemix-Studio-MCP dist_linux/PNGTubeRemix-Studio-MCP
+
+          git -C PNGTuber-Remix describe --tags --always > dist_win/PNGTubeRemix-Studio-MCP/version.txt
+          cp "PNGTuber-Remix/UI/Lipsync stuff/DefaultTraining.tres" dist_win/PNGTubeRemix-Studio-MCP/DefaultTraining.tres
+          ./Godot_v4.7-stable_linux.x86_64 --headless --path PNGTuber-Remix --export-release "Windows Desktop" "$PWD/dist_win/PNGTubeRemix-Studio-MCP/PNGTube Remix.exe"
+          cp server.py requirements.txt pyproject.toml README.md LICENSE dist_win/
+          cp -r skills examples dist_win/
+          (cd dist_win && zip -rq ../PNGTubeRemix-Studio-MCP-Windows-x86_64.zip .)
+
+          git -C PNGTuber-Remix describe --tags --always > dist_linux/PNGTubeRemix-Studio-MCP/version.txt
+          cp "PNGTuber-Remix/UI/Lipsync stuff/DefaultTraining.tres" dist_linux/PNGTubeRemix-Studio-MCP/DefaultTraining.tres
+          ./Godot_v4.7-stable_linux.x86_64 --headless --path PNGTuber-Remix --export-release "Linux/X11" "$PWD/dist_linux/PNGTubeRemix-Studio-MCP/PNGTuber-Remix.x86_64"
+          cp server.py requirements.txt pyproject.toml README.md LICENSE dist_linux/
+          cp -r skills examples dist_linux/
+          (cd dist_linux && zip -rq ../PNGTubeRemix-Studio-MCP-Linux-x86_64.zip .)
+
+          zip -rq pngtuber-remix-mcp-skill.zip skills server.py requirements.txt pyproject.toml README.md LICENSE
+          ls -lh PNGTubeRemix-Studio-MCP-Windows-x86_64.zip PNGTubeRemix-Studio-MCP-Linux-x86_64.zip pngtuber-remix-mcp-skill.zip
+
+      - name: Publish GitHub Release v1.4.7-mcp.1
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.4.7-mcp.1
+          name: PNGTubeRemix Studio MCP v1.4.7-mcp.1
+          generate_release_notes: true
+          body: |
+            ## PNGTubeRemix Studio MCP v1.4.7-mcp.1
+
+            AI-authoring Studio fork of [MudkipWorld/PNGTuber-Remix](https://github.com/MudkipWorld/PNGTuber-Remix) (`V1.4.7`, branch [`sephirods/PNGTuber-Remix@studio-mcp`](https://github.com/sephirods/PNGTuber-Remix/tree/studio-mcp)) + Python MCP Server (39 tools) + Agent Skill (`pngtuber-remix-mcp`).
+
+            - **Auto-starts WebSocket** on `ws://localhost:9321` on launch (Editor & Stream modes).
+            - **100% Vanilla Client Compatible**: `.pngRemix` files saved via `save_model` embed all PNG textures and open directly in unmodified official PNGTuber-Remix V1.4.7.
+            - **Assets included**:
+              - `PNGTubeRemix-Studio-MCP-Windows-x86_64.zip` — Windows executable + MCP server + Agent Skill + example character generator.
+              - `PNGTubeRemix-Studio-MCP-Linux-x86_64.zip` — Linux x86_64 executable + MCP server + Agent Skill + example character generator.
+              - `pngtuber-remix-mcp-skill.zip` — Standalone Agent Skill (`skills/pngtuber-remix-mcp/`) + `server.py`.
+          files: |
+            PNGTubeRemix-Studio-MCP-Windows-x86_64.zip
+            PNGTubeRemix-Studio-MCP-Linux-x86_64.zip
+            pngtuber-remix-mcp-skill.zip
