@@ -13,6 +13,14 @@ description: >-
 
 Author, rig, animate, visually verify, and export complete `.pngRemix` avatars through the `pngtuber-remix` MCP server connected to **PNGTubeRemix-Studio-MCP** (`ws://localhost:9321`). Exported `.pngRemix` files use the native V1.4.7 format with embedded PNG textures and run unmodified in official **PNGTuber-Remix**.
 
+## Auto-Learning & User Profile
+
+Maintain a private, per-user preference file outside the skill/repo at `~/.pngtuber-remix-mcp/preferences.md` (Windows: `%USERPROFILE%\.pngtuber-remix-mcp\preferences.md`). Never commit this file to version control so each user builds their own local memory.
+
+1. **Load on session start**: if `~/.pngtuber-remix-mcp/preferences.md` exists, read it before starting work and apply the user's known folders, executable paths, language, and rigging style.
+2. **Learn automatically**: whenever the user shares a recurring path (artwork folder, `.pngRemix` models folder, `PNGTube Remix.exe` path), corrects an animation/rigging style (e.g., subtle vs. bouncy motion, no full-body bounce, ear/tail style, hotkey layout, preferred eye/mouth style), or establishes a workflow rule, create or update `~/.pngtuber-remix-mcp/preferences.md` and briefly confirm in one line.
+3. **Keep it concise and factual**: store only confirmed user preferences and verified paths; update/replace outdated entries rather than appending duplicates.
+
 ## Desktop Visibility Rule
 
 In sandboxed agent environments (such as Antigravity `exebox`), GUI processes launched from a terminal run inside an isolated virtual desktop and are invisible on the user's monitor.
