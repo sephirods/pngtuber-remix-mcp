@@ -13,7 +13,9 @@ Fork + servidor **MCP** (39 herramientas) + **Agent Skill** (`pngtuber-remix-mcp
 
 ## Instalación rápida
 
-1. Descarga el `.zip` de tu sistema (`PNGTubeRemix-Studio-MCP-Windows-x86_64.zip` o `Linux-x86_64.zip`) desde [Releases](https://github.com/sephirods/pngtuber-remix-mcp/releases) y extráelo.
+1. Descarga desde [Releases](https://github.com/sephirods/pngtuber-remix-mcp/releases) el formato que prefieras:
+   - **Instalable Windows:** `PNGTubeRemix-Studio-MCP-Windows-x86_64-Installer.exe` (asistente de instalación con accesos directos y desinstalador).
+   - **Portable:** `PNGTubeRemix-Studio-MCP-Windows-x86_64-Portable.zip` o `PNGTubeRemix-Studio-MCP-Linux-x86_64-Portable.zip` (extraer y ejecutar).
 2. Instala dependencias Python:
    ```bash
    pip install -r requirements.txt

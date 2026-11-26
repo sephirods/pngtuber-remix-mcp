@@ -26,9 +26,15 @@ Maintain a private, per-user preference file outside the skill/repo at `~/.pngtu
 In sandboxed agent environments (such as Antigravity `exebox`), GUI processes launched from a terminal run inside an isolated virtual desktop and are invisible on the user's monitor.
 
 1. Always call `ping()` first.
-2. If `ping()` fails, ask the user to launch `PNGTube Remix.exe` directly on their desktop (it auto-starts the WebSocket server on `ws://localhost:9321` with zero menu clicks) so every import, rig update, and state change appears live on their screen.
+2. If `ping()` fails, ask the user to launch `PNGTube Remix.exe` directly on their desktop (default portable path: `dist/PNGTubeRemix-Studio-MCP/PNGTube Remix.exe`; default installed path from `PNGTubeRemix-Studio-MCP-Setup.exe`: `%LOCALAPPDATA%\Programs\PNGTubeRemix-Studio-MCP\PNGTube Remix.exe`). It auto-starts the WebSocket server on `ws://localhost:9321` with zero menu clicks so every import, rig update, and state change appears live on their screen.
 3. Only call `launch_studio()` for headless/automated testing or when the user explicitly asks you to launch it.
 4. **Live-session screenshots**: when editing a model live on the user's open desktop window, capture verification screenshots with `capture_screenshot(..., source="subviewport")` while keeping `ui_mode = 0` (avoid calling `set_ui_mode(1)` on older builds where unfocusing hides `%TopBar`).
+
+## Studio MCP UI & Safety Controls
+
+- **Live MCP Status Badge (`✨ MCP`)**: The top bar shows `MCP Active · <action>` in real time while commands run, plus a `Pause MCP` toggle. If a WebSocket call returns `"error": "MCP paused by user"`, inform the user and ask them to uncheck `Pause MCP` in the top-bar `✨ MCP` menu before retrying.
+- **10-Step Undo/Redo & Rolling Autosaves**: Structural MCP mutations (`create_folder`, `import_sprite`, `delete_sprite`, `reparent_sprite`, `rename_sprite`, `replace_sprite_image`) automatically push history snapshots to `UndoRedoManager` (accessible via `Ctrl+Z`/`Ctrl+Y`, top-bar `↶ Undo`/`↷ Redo`, or `Edit`), and the top-bar `Files ▸ Autosave History` lets users restore rolling snapshots if needed.
+- **Workspace Panels & Themes**: Panels (`Image & Normal Map`, `Sprite Tools`, `Sprites`, `File Manager`, `Inspector`, `States`) are dockable/floatable (`Window ▸ Workspace Panels`) and support `Obsidian Glass`, `Pure Black Glass`, `Pure White Glass`, `Frost Aero Glass`, and `Amethyst Glass` (`View ▸ Theme`).
 
 ## Artwork Authoring Rules
 

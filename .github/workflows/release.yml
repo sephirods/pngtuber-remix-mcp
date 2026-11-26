@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - '.github/workflows/release.yml'
+      - 'installer/**'
       - 'server.py'
       - 'requirements.txt'
       - 'pyproject.toml'
@@ -50,19 +51,47 @@ jobs:
           git -C PNGTuber-Remix describe --tags --always > dist_win/PNGTubeRemix-Studio-MCP/version.txt
           cp "PNGTuber-Remix/UI/Lipsync stuff/DefaultTraining.tres" dist_win/PNGTubeRemix-Studio-MCP/DefaultTraining.tres
           ./Godot_v4.7-stable_linux.x86_64 --headless --path PNGTuber-Remix --export-release "Windows Desktop" "$PWD/dist_win/PNGTubeRemix-Studio-MCP/PNGTube Remix.exe"
+          python3 - << 'PY'
+          import base64, struct, zipfile
+          from pathlib import Path
+
+          stub_bytes = base64.b64decode(Path("installer/SetupStub.exe.b64").read_text())
+          win_dir = Path("dist_win/PNGTubeRemix-Studio-MCP")
+          runtime_zip = Path("runtime_win.zip")
+          with zipfile.ZipFile(runtime_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for p in sorted(win_dir.rglob("*")):
+                  if p.is_file():
+                      arc = f"PNGTubeRemix-Studio-MCP/{p.relative_to(win_dir).as_posix()}"
+                      zf.write(p, arc)
+          zip_bytes = runtime_zip.read_bytes()
+          footer = struct.pack("<q8s", len(stub_bytes), b"PRMSET01")
+          out_exe = Path("PNGTubeRemix-Studio-MCP-Windows-x86_64-Installer.exe")
+          with open(out_exe, "wb") as f:
+              f.write(stub_bytes)
+              f.write(zip_bytes)
+              f.write(footer)
+          print(f"Built {out_exe} ({out_exe.stat().st_size} bytes)")
+          PY
           cp server.py requirements.txt pyproject.toml README.md LICENSE dist_win/
           cp -r skills examples dist_win/
-          (cd dist_win && zip -rq ../PNGTubeRemix-Studio-MCP-Windows-x86_64.zip .)
+          (cd dist_win && zip -rq ../PNGTubeRemix-Studio-MCP-Windows-x86_64-Portable.zip .)
 
           git -C PNGTuber-Remix describe --tags --always > dist_linux/PNGTubeRemix-Studio-MCP/version.txt
           cp "PNGTuber-Remix/UI/Lipsync stuff/DefaultTraining.tres" dist_linux/PNGTubeRemix-Studio-MCP/DefaultTraining.tres
           ./Godot_v4.7-stable_linux.x86_64 --headless --path PNGTuber-Remix --export-release "Linux/X11" "$PWD/dist_linux/PNGTubeRemix-Studio-MCP/PNGTuber-Remix.x86_64"
           cp server.py requirements.txt pyproject.toml README.md LICENSE dist_linux/
           cp -r skills examples dist_linux/
-          (cd dist_linux && zip -rq ../PNGTubeRemix-Studio-MCP-Linux-x86_64.zip .)
+          (cd dist_linux && zip -rq ../PNGTubeRemix-Studio-MCP-Linux-x86_64-Portable.zip .)
 
           zip -rq pngtuber-remix-mcp-skill.zip skills server.py requirements.txt pyproject.toml README.md LICENSE
-          ls -lh PNGTubeRemix-Studio-MCP-Windows-x86_64.zip PNGTubeRemix-Studio-MCP-Linux-x86_64.zip pngtuber-remix-mcp-skill.zip
+          ls -lh PNGTubeRemix-Studio-MCP-Windows-x86_64-Installer.exe PNGTubeRemix-Studio-MCP-Windows-x86_64-Portable.zip PNGTubeRemix-Studio-MCP-Linux-x86_64-Portable.zip pngtuber-remix-mcp-skill.zip
+
+      - name: Remove legacy unlabelled release archives
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete-asset v1.4.7-mcp.1 PNGTubeRemix-Studio-MCP-Windows-x86_64.zip --yes || true
+          gh release delete-asset v1.4.7-mcp.1 PNGTubeRemix-Studio-MCP-Linux-x86_64.zip --yes || true
 
       - name: Publish GitHub Release v1.4.7-mcp.1
         uses: softprops/action-gh-release@v2
@@ -75,13 +104,17 @@ jobs:
 
             AI-authoring Studio fork of [MudkipWorld/PNGTuber-Remix](https://github.com/MudkipWorld/PNGTuber-Remix) (`V1.4.7`, branch [`sephirods/PNGTuber-Remix@studio-mcp`](https://github.com/sephirods/PNGTuber-Remix/tree/studio-mcp)) + Python MCP Server (39 tools) + Agent Skill (`pngtuber-remix-mcp`).
 
-            - **Auto-starts WebSocket** on `ws://localhost:9321` on launch (Editor & Stream modes).
+            - **Auto-starts WebSocket** on `ws://localhost:9321` on launch (Editor & Stream modes) with live `✨ MCP Active · <action>` top-bar telemetry & `Pause MCP` control.
+            - **Studio Workspace**: 10-step `UndoRedoManager` (`Ctrl+Z`/`Ctrl+Y`), rolling autosave history, Photoshop-style dockable/floating panels, 5 Glass themes (`Obsidian`, `Pure Black`, `Pure White`, `Frost Aero`, `Amethyst`), and high-contrast icons.
             - **100% Vanilla Client Compatible**: `.pngRemix` files saved via `save_model` embed all PNG textures and open directly in unmodified official PNGTuber-Remix V1.4.7.
-            - **Assets included**:
-              - `PNGTubeRemix-Studio-MCP-Windows-x86_64.zip` — Windows executable + MCP server + Agent Skill + example character generator.
-              - `PNGTubeRemix-Studio-MCP-Linux-x86_64.zip` — Linux x86_64 executable + MCP server + Agent Skill + example character generator.
-              - `pngtuber-remix-mcp-skill.zip` — Standalone Agent Skill (`skills/pngtuber-remix-mcp/`) + `server.py`.
+
+            ### Downloads
+            - **`PNGTubeRemix-Studio-MCP-Windows-x86_64-Installer.exe`** — **Windows Installer** (single `.exe` wizard with Desktop/Start Menu shortcuts, `.pngRemix` file association, and Windows Uninstaller).
+            - **`PNGTubeRemix-Studio-MCP-Windows-x86_64-Portable.zip`** — **Windows Portable** (no installation required: extract & run + MCP server + Agent Skill + examples).
+            - **`PNGTubeRemix-Studio-MCP-Linux-x86_64-Portable.zip`** — **Linux x86_64 Portable** (extract & run + MCP server + Agent Skill + examples).
+            - **`pngtuber-remix-mcp-skill.zip`** — **Standalone Agent Skill** (`skills/pngtuber-remix-mcp/`) + `server.py`.
           files: |
-            PNGTubeRemix-Studio-MCP-Windows-x86_64.zip
-            PNGTubeRemix-Studio-MCP-Linux-x86_64.zip
+            PNGTubeRemix-Studio-MCP-Windows-x86_64-Installer.exe
+            PNGTubeRemix-Studio-MCP-Windows-x86_64-Portable.zip
+            PNGTubeRemix-Studio-MCP-Linux-x86_64-Portable.zip
             pngtuber-remix-mcp-skill.zip
