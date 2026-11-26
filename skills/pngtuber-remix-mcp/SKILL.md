@@ -26,6 +26,8 @@ In sandboxed agent environments (such as Antigravity `exebox`), GUI processes la
 - Render all layers on an **identical transparent square canvas** (e.g., `600x600` or `1000x1000`, drawn at `4x` supersampling and downsampled with `Image.Resampling.LANCZOS`), and import with `trim=False` so every part aligns at `[0, 0]` automatically.
 - **Clip internal details**: mask tongues, teeth, or iris highlights inside the mouth/eye cavity mask before drawing the outer border so nothing protrudes past the outline.
 - **Connect stems & appendages**: anchor leaf/hair/ear Bezier paths directly onto the parent stem/joint coordinates and place behind-parent parts (stems, back hair, arms) at negative relative `z_index` (e.g., `-1`).
+- **Separate Sclera / Iris / Eyelids for eye tracking**: never move the white sclera when tracking the mouse. Split raster eyes into (1) stationary clean sclera (`clip: 2` / `AndDraw`, with all residual dark iris pixels cleanly inpainted out), (2) child iris (`follow_type: 0`, complete pupil/rim cutout), and (3) sibling eyelids/brows (`z_index` above sclera/iris, below `hair` and `snout/nose`).
+- **Cumulative `z_index` rule**: in Godot 4 (`z_as_relative = true`), `effective_z = parent_z + child_z`. Before raising any child layer's `z_index` (such as `hair` over `eyelids`), check sibling branches like `extras` / emotion symbols (`extra_mad`, sweat drops, etc.) and keep overlays at a higher effective `z_index`.
 
 ## 5-Step Rigging Pipeline
 
@@ -41,7 +43,7 @@ In sandboxed agent environments (such as Antigravity `exebox`), GUI processes la
    - Keep `is_asset=False` on state-switched layers (`sprite_data.visible` controls visibility per state). Reserve `is_asset=True` + `hotkey` for independent toggle props.
 5. **Visual Verification & Client Export Gate**:
    - Switch to `set_ui_mode(1)` (Stream mode hides the Editor's 20%-alpha ghost preview of inactive blink/talk layers).
-   - Test deterministically with `simulate_input(mouth_state=..., blink=...)` + `set_state(...)` + `capture_screenshot(...)`, and visually inspect every state screenshot.
+   - Test deterministically with `simulate_input(mouth_state=..., blink=...)` + `set_state(...)` + `capture_screenshot(...)`, and visually inspect **every state (`1..N`)** — never only the single state you just edited — to catch `z_index` or visibility regressions across expressions.
    - Restore `simulate_input(mouth_state="auto", blink="auto")`, `set_state(state_id=1)`, and `set_ui_mode(0)`.
    - Save via `save_model(output_path)` and run [verify_pngremix.py](./scripts/verify_pngremix.py) before delivering `.pngRemix` to a client.
 
