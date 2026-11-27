@@ -6,6 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -21,6 +22,20 @@ namespace StudioSetup
     {
         private static readonly byte[] Magic = Encoding.ASCII.GetBytes("PRMSET01");
         private const string StripPrefix = "PNGTubeRemix-Studio-MCP/";
+
+        [DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
+        public static void RefreshShellIcons()
+        {
+            try
+            {
+                SHChangeNotify(0x08000000u, 0x0000u, IntPtr.Zero, IntPtr.Zero);
+            }
+            catch
+            {
+            }
+        }
 
         public static long ReadPayloadOffset(string exePath)
         {
@@ -143,9 +158,10 @@ namespace StudioSetup
                 }
                 if (associateFiles)
                 {
-                    RegisterFileAssociation(appExe);
+                    RegisterFileAssociation(installDir, appExe);
                 }
                 RegisterUninstallEntry(installDir, appExe, uninstallBat);
+                RefreshShellIcons();
             }
 
             if (onProgress != null) onProgress(100, "Installation complete.");
@@ -162,7 +178,11 @@ namespace StudioSetup
             sb.AppendLine("del /F /Q \"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\PNGTubeRemix-Studio-MCP.lnk\" >nul 2>&1");
             sb.AppendLine("reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\PNGTubeRemix-Studio-MCP\" /f >nul 2>&1");
             sb.AppendLine("reg delete \"HKCU\\Software\\Classes\\.pngRemix\" /f >nul 2>&1");
+            sb.AppendLine("reg delete \"HKCU\\Software\\Classes\\.pngremix\" /f >nul 2>&1");
             sb.AppendLine("reg delete \"HKCU\\Software\\Classes\\PNGTubeRemix.Model\" /f >nul 2>&1");
+            sb.AppendLine("reg delete \"HKCU\\Software\\Classes\\pngRemix_auto_file\" /f >nul 2>&1");
+            sb.AppendLine("reg delete \"HKCU\\Software\\Classes\\Applications\\PNGTube Remix.exe\" /f >nul 2>&1");
+            sb.AppendLine("\"%SystemRoot%\\System32\\ie4uinit.exe\" -show >nul 2>&1");
             sb.AppendLine("set \"TARGET=" + installDir + "\"");
             sb.AppendLine("start \"\" /b cmd /c \"timeout /t 2 /nobreak >nul & rmdir /s /q \"%TARGET%\"\"");
             sb.AppendLine("exit /b 0");
@@ -183,23 +203,59 @@ namespace StudioSetup
             scType.InvokeMember("Save", BindingFlags.InvokeMethod, null, sc, null);
         }
 
-        private static void RegisterFileAssociation(string appExe)
+        private static void RegisterFileAssociation(string installDir, string appExe)
         {
-            using (RegistryKey extKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\.pngRemix"))
+            string fileIco = Path.Combine(installDir, "PngRemixFile.ico");
+            string docIconValue = File.Exists(fileIco) ? "\"" + fileIco + "\",0" : "\"" + appExe + "\",0";
+            string openCmd = "\"" + appExe + "\" \"%1\"";
+
+            foreach (string ext in new string[] { @".pngRemix", @".pngremix" })
             {
-                if (extKey != null) extKey.SetValue("", "PNGTubeRemix.Model");
+                using (RegistryKey extKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + ext))
+                {
+                    if (extKey != null)
+                    {
+                        extKey.SetValue("", "PNGTubeRemix.Model");
+                        extKey.SetValue("Content Type", "application/x-pngremix");
+                    }
+                }
+                using (RegistryKey progidsKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + ext + @"\OpenWithProgids"))
+                {
+                    if (progidsKey != null) progidsKey.SetValue("PNGTubeRemix.Model", new byte[0], RegistryValueKind.None);
+                }
             }
-            using (RegistryKey clsKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\PNGTubeRemix.Model"))
+
+            foreach (string progId in new string[] { "PNGTubeRemix.Model", "pngRemix_auto_file" })
             {
-                if (clsKey != null) clsKey.SetValue("", "PNGTubeRemix Avatar Model");
+                using (RegistryKey clsKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId))
+                {
+                    if (clsKey != null)
+                    {
+                        clsKey.SetValue("", "PNGTubeRemix Avatar Model");
+                        clsKey.SetValue("FriendlyTypeName", "PNGTubeRemix Avatar Model");
+                    }
+                }
+                using (RegistryKey icoKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId + @"\DefaultIcon"))
+                {
+                    if (icoKey != null) icoKey.SetValue("", docIconValue);
+                }
+                using (RegistryKey cmdKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId + @"\shell\open\command"))
+                {
+                    if (cmdKey != null) cmdKey.SetValue("", openCmd);
+                }
             }
-            using (RegistryKey icoKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\PNGTubeRemix.Model\DefaultIcon"))
+
+            using (RegistryKey appIcoKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\PNGTube Remix.exe\DefaultIcon"))
             {
-                if (icoKey != null) icoKey.SetValue("", "\"" + appExe + "\",0");
+                if (appIcoKey != null) appIcoKey.SetValue("", "\"" + appExe + "\",0");
             }
-            using (RegistryKey cmdKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\PNGTubeRemix.Model\shell\open\command"))
+            using (RegistryKey appCmdKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\PNGTube Remix.exe\shell\open\command"))
             {
-                if (cmdKey != null) cmdKey.SetValue("", "\"" + appExe + "\" \"%1\"");
+                if (appCmdKey != null) appCmdKey.SetValue("", openCmd);
+            }
+            using (RegistryKey appSupKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\PNGTube Remix.exe\SupportedTypes"))
+            {
+                if (appSupKey != null) appSupKey.SetValue(".pngRemix", "");
             }
         }
 
@@ -247,6 +303,12 @@ namespace StudioSetup
             BackColor = Color.FromArgb(17, 21, 30);
             ForeColor = Color.FromArgb(235, 240, 248);
             Font = new Font("Segoe UI", 9.5f);
+            try
+            {
+                Icon exeIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+                if (exeIcon != null) Icon = exeIcon;
+            }
+            catch { }
 
             Label title = new Label();
             title.Text = "PNGTubeRemix-Studio-MCP v1.4.7";

@@ -51,10 +51,15 @@ jobs:
 
           git -C PNGTuber-Remix describe --tags --always > dist_win/PNGTubeRemix-Studio-MCP/version.txt
           cp "PNGTuber-Remix/UI/Lipsync stuff/DefaultTraining.tres" dist_win/PNGTubeRemix-Studio-MCP/DefaultTraining.tres
+          cp "PNGTuber-Remix/PngRemixFile.ico" dist_win/PNGTubeRemix-Studio-MCP/PngRemixFile.ico
           ./Godot_v4.7-stable_linux.x86_64 --headless --path PNGTuber-Remix --export-release "Windows Desktop" "$PWD/dist_win/PNGTubeRemix-Studio-MCP/PNGTube Remix.exe"
           python3 - << 'PY'
           import base64, struct, zipfile
           from pathlib import Path
+
+          # Verify exported Windows binary has embedded icon resources (warn/info in log)
+          exe_data = Path("dist_win/PNGTubeRemix-Studio-MCP/PNGTube Remix.exe").read_bytes()
+          print(f"Exported PNGTube Remix.exe bytes={len(exe_data)}")
 
           stub_bytes = base64.b64decode(Path("installer/SetupStub.exe.b64").read_text())
           win_dir = Path("dist_win/PNGTubeRemix-Studio-MCP")
@@ -104,8 +109,8 @@ jobs:
 
             AI-authoring Studio fork of [MudkipWorld/PNGTuber-Remix](https://github.com/MudkipWorld/PNGTuber-Remix) (`V1.4.7`, branch [`sephirods/PNGTuber-Remix@studio-mcp`](https://github.com/sephirods/PNGTuber-Remix/tree/studio-mcp)) + Python MCP Server (39 tools) + Agent Skill (`pngtuber-remix-mcp`).
 
-            - **Auto-starts WebSocket** on `ws://localhost:9321` on launch (Editor & Stream modes) with live `✨ MCP Active · <action>` top-bar telemetry, `Pause MCP` control, and quick simulation buttons (`Talk`, `Blink`, `Eyes Closed`).
-            - **Studio Workspace**: 10-step `UndoRedoManager` (`Ctrl+Z`/`Ctrl+Y`), rolling autosave history, Photoshop-style dockable/floating panels (`View ▸ Workspace Panels` permanent visibility toggles + flush 1:1 border resize grips & symmetric `Left`/`Right` arrows), Inspector + inline `Sprites` tree rename (`RMB` / `F2` / Triple-Click), 5 Glass themes (`Obsidian`, `Pure Black`, `Pure White`, `Frost Aero`, `Amethyst`), high-contrast icons, and direct `.pngRemix` CLI/file-association launch loading.
+            - **Auto-starts WebSocket** on `ws://localhost:9321` on launch (Editor & Stream modes) with live `✨ MCP Active · <action>` top-bar telemetry & `Pause MCP` control.
+            - **Studio Workspace**: 10-step `UndoRedoManager` (`Ctrl+Z`/`Ctrl+Y`), rolling autosave history, Photoshop-style dockable/floating panels with symmetric crisp header icons, Inspector + inline `Sprites` tree rename (`RMB` / `F2` / Triple-Click), 5 Glass themes (`Obsidian`, `Pure Black`, `Pure White`, `Frost Aero`, `Amethyst`), and high-contrast icons.
             - **100% Vanilla Client Compatible**: `.pngRemix` files saved via `save_model` embed all PNG textures and open directly in unmodified official PNGTuber-Remix V1.4.7.
 
             ### Downloads
