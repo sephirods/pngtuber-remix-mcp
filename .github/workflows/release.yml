@@ -105,7 +105,7 @@ jobs:
             AI-authoring Studio fork of [MudkipWorld/PNGTuber-Remix](https://github.com/MudkipWorld/PNGTuber-Remix) (`V1.4.7`, branch [`sephirods/PNGTuber-Remix@studio-mcp`](https://github.com/sephirods/PNGTuber-Remix/tree/studio-mcp)) + Python MCP Server (39 tools) + Agent Skill (`pngtuber-remix-mcp`).
 
             - **Auto-starts WebSocket** on `ws://localhost:9321` on launch (Editor & Stream modes) with live `✨ MCP Active · <action>` top-bar telemetry & `Pause MCP` control.
-            - **Studio Workspace**: 10-step `UndoRedoManager` (`Ctrl+Z`/`Ctrl+Y`), rolling autosave history, Photoshop-style dockable/floating panels (with crisp symmetric `Left`/`Right` swap arrows), Inspector + inline `Sprites` tree rename (`RMB` / `F2` / Triple-Click), 5 Glass themes (`Obsidian`, `Pure Black`, `Pure White`, `Frost Aero`, `Amethyst`), and high-contrast icons.
+            - **Studio Workspace**: 10-step `UndoRedoManager` (`Ctrl+Z`/`Ctrl+Y`), rolling autosave history, Photoshop-style dockable/floating panels with flush border resize grips & symmetric `Left`/`Right` arrows, Inspector + inline `Sprites` tree rename (`RMB` / `F2` / Triple-Click), 5 Glass themes (`Obsidian`, `Pure Black`, `Pure White`, `Frost Aero`, `Amethyst`), high-contrast icons, and direct `.pngRemix` CLI/file-association launch loading.
             - **100% Vanilla Client Compatible**: `.pngRemix` files saved via `save_model` embed all PNG textures and open directly in unmodified official PNGTuber-Remix V1.4.7.
 
             ### Downloads
